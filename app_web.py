@@ -1,78 +1,111 @@
 import streamlit as st
 import donnees_agricoles as db
+from openai import OpenAI # L'outil pour parler à l'IA
 
-# 1. Configuration de la page (Doit toujours être la première ligne)
-st.set_page_config(
-    page_title="Agri-Senegal IA", 
-    page_icon="🇸🇳",
-    layout="centered" # Centre le contenu comme sur un mobile
-)
+# --- CONFIGURATION ---
+st.set_page_config(page_title="Agri-Senegal IA", page_icon="🇸🇳", layout="centered")
 
-# 2. Barre latérale (Menu de gauche)
+# --- BARRE LATÉRALE ---
 with st.sidebar:
-    st.header("🇸🇳 Agri-Senegal")
-    st.write("Votre assistant agricole de poche.")
-    st.write("---")
-    st.info("💡 Astuce : Utilisez ce menu pour changer rapidement de culture.")
-
-# 3. Titre principal avec un style
-st.title("🌾 Assistant Agricole")
-st.markdown("Bienvenue. Sélectionnez une culture pour voir **le calendrier**, **l'irrigation** et **les conseils santé**.")
-
-# 4. Le choix de la culture (avec des icônes)
-# On crée un dictionnaire pour lier le nom affiché à la clé de la base de données
-options_affichage = {
-    "🥜 Arachide": "arachide",
-    "🌾 Mil": "mil",
-    "🧅 Oignon": "oignon",
-    "🍚 Riz": "riz",
-    "🥭 Mangue": "mangue"
-}
-
-# L'utilisateur choisit dans la liste avec les icônes
-choix_utilisateur = st.selectbox("Je veux des infos sur :", list(options_affichage.keys()))
-
-# On récupère la vraie clé (ex: "🥜 Arachide" devient "arachide")
-cle_culture = options_affichage[choix_utilisateur]
-
-# 5. Dictionnaire des images (Liens internet)
-images = {
-    "arachide": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Arachis_hypogaea_-_Köhler–s_Medizinal-Pflanzen-013.jpg/433px-Arachis_hypogaea_-_Köhler–s_Medizinal-Pflanzen-013.jpg",
-    "mil": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Pearl_millet_close_up.jpg/440px-Pearl_millet_close_up.jpg",
-    "oignon": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Onion_on_White.JPG/480px-Onion_on_White.JPG",
-    "riz": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Oryza_sativa_-_Köhler–s_Medizinal-Pflanzen-104.jpg/407px-Oryza_sativa_-_Köhler–s_Medizinal-Pflanzen-104.jpg",
-    "mangue": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Hapus_Mango.jpg/440px-Hapus_Mango.jpg"
-}
-
-# 6. Affichage des résultats
-if st.button("🔍 Analyser la culture"):
+    st.image("https://upload.wikimedia.org/wikipedia/commons/f/fd/Flag_of_Senegal.svg", width=50)
+    st.header("Paramètres")
+    langue_choisie = st.radio("Langue", ["Français 🇫🇷", "Wolof 🇸🇳"])
     
-    st.divider() # Ligne de séparation
-    
-    # Récupération des données
-    info = db.cultures[cle_culture]
-    
-    # Affichage de l'image centrée
-    if cle_culture in images:
-        st.image(images[cle_culture], caption=f"Culture : {choix_utilisateur}", use_container_width=True)
+    # Configuration des textes selon la langue
+    if "Wolof" in langue_choisie:
+        code_langue = "wo"
+        txt_titre = "Samm Sa Tol - IA"
+        txt_intro = "Tànnal sa meññent wala nga laaj IA bi."
+        txt_choix = "Ban meññent nga soxla ?"
+        txt_calcul = "🧮 Calculateur Semence"
+        txt_surface = "Sa tol numu tollu ? (Hectares)"
+        txt_res_sem = "Li ngay soxla ci jiwu :"
+        txt_ia_titre = "🤖 Assistant IA (Doktör Tol)"
+        txt_ia_intro = "Posez une question sur l'agriculture (Maladies, Climat...)"
+        txt_ia_input = "Bindal sa laaj fi..."
+        txt_ia_bouton = "Laaj (Demander)"
+    else:
+        code_langue = "fr"
+        txt_titre = "Assistant Agricole Sénégal"
+        txt_intro = "Sélectionnez une culture ou posez une question à l'IA."
+        txt_choix = "Quelle culture vous intéresse ?"
+        txt_calcul = "🧮 Calculateur de Semences"
+        txt_surface = "Quelle est la surface de votre champ ? (Hectares)"
+        txt_res_sem = "Quantité de semences nécessaire :"
+        txt_ia_titre = "🤖 Assistant IA Intelligent"
+        txt_ia_intro = "Posez n'importe quelle question technique (Maladie, Météo, Engrais...)"
+        txt_ia_input = "Écrivez votre question ici..."
+        txt_ia_bouton = "Demander à l'IA"
 
-    # Affichage des informations dans des "onglets" (Tabs)
-    # C'est très moderne et facile à lire
-    tab1, tab2, tab3 = st.tabs(["📅 Semis & Eau", "🦠 Santé & Maladies", "💡 Conseil Expert"])
-    
-    with tab1:
-        st.subheader("Calendrier Agricole")
-        st.success(f"**Période de semis :** {info['semis']}")
-        st.info(f"**Besoins en eau :** {info['irrigation']}")
-        
-    with tab2:
-        st.subheader("Prévention des maladies")
-        st.warning(f"**Attention à :** {info['maladie']}")
-        
-    with tab3:
-        st.subheader("Le conseil du technicien")
-        st.write(info['conseil'])
+# --- CONTENU PRINCIPAL ---
+st.title(f"🌾 {txt_titre}")
+st.write(txt_intro)
 
-# Pied de page
-st.write("---")
-st.caption("Développé pour l'agriculture sénégalaise. Version 2.0")
+# 1. SECTION CLASSIQUE (BASE DE DONNÉES)
+st.divider()
+liste_cles = list(db.cultures.keys())
+options_menu = {db.cultures[cle][code_langue]['nom']: cle for cle in liste_cles}
+
+choix_nom = st.selectbox(txt_choix, list(options_menu.keys()))
+cle = options_menu[choix_nom]
+info = db.cultures[cle]
+txt = info[code_langue]
+
+st.subheader(txt['nom'])
+st.image(info['image'], use_container_width=True)
+
+c1, c2 = st.columns(2)
+with c1:
+    st.info(f"**📅 Semis:**\n{txt['semis']}")
+    st.warning(f"**🦠 Santé:**\n{txt['maladie']}")
+with c2:
+    st.info(f"**💧 Eau:**\n{txt['irrigation']}")
+    st.success(f"**💡 Conseil:**\n{txt['conseil']}")
+
+# 2. SECTION CALCULATEUR
+st.divider()
+st.subheader(txt_calcul)
+surf = st.number_input(txt_surface, min_value=0.1, value=1.0, step=0.5)
+if info['besoin_semence'] > 0:
+    st.metric(txt_res_sem, f"{surf * info['besoin_semence']:.1f} kg")
+else:
+    st.write("Pas de calcul pour cette culture.")
+
+# 3. SECTION INTELLIGENCE ARTIFICIELLE (CHATGPT)
+st.divider()
+st.header(txt_ia_titre)
+st.write(txt_ia_intro)
+
+# Zone de texte pour la question
+question_user = st.text_area(txt_ia_input)
+
+if st.button(txt_ia_bouton, type="primary"):
+    if not question_user:
+        st.error("Veuillez écrire une question.")
+    else:
+        # On vérifie si la clé existe (Sécurité)
+        if "OPENAI_API_KEY" not in st.secrets:
+            st.error("⚠️ La clé API OpenAI est manquante dans les paramètres.")
+            st.info("Ajoutez votre clé dans les 'Secrets' de Streamlit Cloud.")
+        else:
+            with st.spinner("L'IA réfléchit... / IA bi ngi xalaat..."):
+                try:
+                    # Connexion à l'IA
+                    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                    
+                    # Le message envoyé à l'IA
+                    reponse = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "Tu es un agronome expert du Sénégal. Tu réponds courtement et simplement. Si on te parle Wolof, réponds en Wolof."},
+                            {"role": "user", "content": question_user}
+                        ]
+                    )
+                    
+                    # Affichage de la réponse
+                    resultat = reponse.choices[0].message.content
+                    st.success("Réponse de l'IA :")
+                    st.write(resultat)
+                    
+                except Exception as e:
+                    st.error(f"Erreur de connexion : {e}")
